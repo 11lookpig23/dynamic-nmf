@@ -3,18 +3,17 @@ import joblib
 import numpy as np
 from collections import Counter
 import heapq
+import pickle
+import pandas as pd
+num_topics = 670
+years = 12
+path_dyn = 'out/dynamictopics_k'+str(num_topics)+'.pkl'
 
-num_topics = 240
-years = 4
 ### 1. Read
 def load_nmf_results( in_path ):
-    	"""
-	Load NMF results using Joblib. Note that we use the scikit-learn bundled version of joblib.
-	"""
 	(doc_ids, terms, term_rankings, partition, W, H, labels) = joblib.load( in_path )
 	return (doc_ids, terms, term_rankings, partition, W, H, labels)
 
-path_dyn = 'out/dynamictopics_k240.pkl'
 (doc_ids, terms, term_rankings, partition, W, H, labels) = load_nmf_results(path_dyn)
 
 with open('data/embeddings.npy','rb') as f:
@@ -42,22 +41,22 @@ def generate_partition(W):
 
 def generate_partition2(W):
     tot = [0]*num_topics
-    W[W < 0.04] = 0
+    W[W < 0.0368] = 0
     for w in W:
         nlar = heapq.nlargest(5, enumerate(w), key=lambda x: x[1])
         if nlar[0][1] == 0:
             continue
         else:
             delt = [(nlar[0][1] - nlar[i+1][1]) for i in range(4)]
-            adli = [nlar[0][0]]
+            adli = [nlar[0]]#[nlar[0][0]]
             for i in range(4):
                 d = delt[i]
-                if d<0.03:
-                    adli.append(nlar[i+1][0])
+                if d<0.0274:
+                    adli.append(nlar[i+1])
+            s = sum([a[1] for a in adli])
             for a in adli:
-                tot[a] += 1/len(adli)
+                tot[a[0]] += a[1]/s#1/len(adli)
     return [round(t) for t in tot]
-
 
 def generate_partition3(W):
     tot = [0]*num_topics
@@ -91,8 +90,8 @@ for i in range(years):
     dicw = time_topic(dicw)
     tot[i+2006] = dicw
 totdf = pd.DataFrame(data = tot)
-totdf.save("tot.csv")
-np.save("Wn.npy",Wli)
+totdf.save("res/tot.csv")
+np.save("res/Wn.npy",Wli)
     #res2 = dict(sorted(dicw.items(), key = itemgetter(1), reverse = True)[:])
     #res2
     ## return : pandas
